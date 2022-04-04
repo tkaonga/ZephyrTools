@@ -36,7 +36,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
     '''
 
     # Columns for the Zephyr import CSV
-    headers = ["Labels", "Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder", "Precondition"]
+    headers = ["Labels", "Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder"]
 
     # Time estimate - default of 8 hours. Required Format - "hh:mm"
     default_estimate = "08:00"
@@ -44,8 +44,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
     status = "Draft"
     # Priority Status - defaults to low
     default_priority = "Low"
-    # Default Precondition
-    default_precondition = "Baseline"
+
 
     # Populate the user field
 
@@ -125,11 +124,9 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
             # PRIORITY & PRECONDITION: Raise priority to "High" if there is a Mk1 label
             mark_one_state = copy_sheet[TP_columns[7]]
             if isinstance(mark_one_state[j], str) and mark_one_state[j] == 'Y':
-                priority = "High"
-                precondition = "Mk1"
+                priority = "Mk1"
             else:
                 priority = default_priority
-                precondition = default_precondition
 
             # Write the objective of the test.
             test_objectives_list.append(f'Measure {test_type} of the {chip_id} {vars_string}')
@@ -138,7 +135,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
             writer = csv.writer(f)
             writer.writerow([list(copy_sheet[headers[0]].values())[j], list(copy_sheet[headers[1]].values())[j]
                                 , test_objectives_list[j], default_user, priority, status, default_estimate,
-                             folder, precondition])
+                             folder])
 
             test_count += 1
 

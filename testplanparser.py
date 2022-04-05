@@ -38,8 +38,8 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
     # Columns for the Zephyr import CSV
     headers = ["Labels", "Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder", "Component"]
 
-    # Time estimate - default of 8 hours. Required Format - "hh:mm"
-    default_estimate = "08:00"
+    # Time estimate - default of 1 hours. Required Format - "hh:mm"
+    default_estimate = "1:00"
     # Status - default of Not Started. Required Format - "Draft"
     status = "Draft"
     # Priority Status - defaults to low
@@ -99,7 +99,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
             volt = copy_sheet[TP_columns[4]][j]
             temp = copy_sheet[TP_columns[5]][j]
             folder = ""
-
+            
             # Regex to remove Sheet names/Test Types with numbers & non-underscore characters in them
             TP_sheet_names[iter] = re.sub(r'[^A-Za-z_]+', "", TP_sheet_names[iter])
             test_type = TP_sheet_names[iter]
@@ -109,10 +109,17 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
             # Parse test cases into Small Signal Gain folder
             if len(split_type) > 1 and "SSG" in split_type[0]:
                 folder = f"Small Signal Gain: {split_type[1]}"
+            elif len(split_type) > 1:
+                folder = f"{split_type[0]}: {split_type[1]}"
+            else:
+                folder = split_type[0]
+
+            folder = folder + " " + f"({component})"
+
 
             # Populate Test Case No & Label
-            copy_sheet[headers[0]][j] = copy_sheet[TP_columns[3]][j]
-            copy_sheet[headers[1]][j] = test_type + str(copy_sheet[TP_columns[0]][j]) + "_" + chip_id + "_" \
+            copy_sheet[headers[0]][j] = test_type + str(copy_sheet[TP_columns[0]][j])
+            copy_sheet[headers[1]][j] = copy_sheet[TP_columns[3]][j] + "_" + chip_id + "_" \
                                         + volt + "_" + temp
 
             # Populate string of independent variables
@@ -124,8 +131,11 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
 
             # PRIORITY & PRECONDITION: Raise priority to "High" if there is a Mk1 label
             mark_one_state = copy_sheet[TP_columns[7]]
+            baseline_state = copy_sheet[TP_columns[6]]
             if isinstance(mark_one_state[j], str) and mark_one_state[j] == 'Y':
                 priority = "Mk1"
+            elif isinstance(baseline_state[j], str) and baseline_state[j] == 'Y' and mark_one_state[j] != 'Y':
+                priority = "Baseline"
             else:
                 priority = default_priority
 

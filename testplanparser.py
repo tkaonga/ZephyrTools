@@ -29,14 +29,14 @@ def read_test_plan(filename, skip_row):
     return (excel_dicts, sheet_list)
 
 
-def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
+def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_users=None):
     '''
         Function: read_test_plan() function is called by the zephyr_translation() function.
         Argument 1: Filename of the Excel file.
     '''
 
     # Columns for the Zephyr import CSV
-    headers = ["Labels", "Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder"]
+    headers = ["Labels", "Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder", "Component"]
 
     # Time estimate - default of 8 hours. Required Format - "hh:mm"
     default_estimate = "08:00"
@@ -45,6 +45,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
     # Priority Status - defaults to low
     default_priority = "Low"
 
+    component = component_input
 
     # Populate the user field
 
@@ -55,7 +56,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
         default_user = "Unassigned"
 
     # Call the testplan reader function
-    TP_sheets, TP_sheet_names = read_test_plan(test_plan_excel, skip_row=skip_row_len)
+    TP_sheets, TP_sheet_names = read_test_plan(test_plan_excel, skip_row=int(skip_row_len))
 
     # Iterate loop counter
     iter = 0
@@ -65,7 +66,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
 
     # Initialise test plan folder & filepath
     dir_path = (sys.argv[1] + "\\" + test_plan_prefix)
-    file_path = dir_path + "\\" + test_plan_prefix + "_Zephyr_Import" + ".csv"
+    file_path = dir_path + "\\" + test_plan_prefix + "_" + component + "_Zephyr_Import" + ".csv"
 
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -135,7 +136,7 @@ def zephyr_translation(test_plan_excel, skip_row_len, jira_users=None):
             writer = csv.writer(f)
             writer.writerow([list(copy_sheet[headers[0]].values())[j], list(copy_sheet[headers[1]].values())[j]
                                 , test_objectives_list[j], default_user, priority, status, default_estimate,
-                             folder])
+                             folder, component])
 
             test_count += 1
 
@@ -174,6 +175,8 @@ def print_helper():
 
         Argument 1: Workspace Directory
         Argument 2: Filename of the Test Plan Excel file (xlsx format expected).
+        Argument 3: Number of rows to skip in Test Plan (before Test Columns)
+        Argument 4: Engineering Sample (e.g. "ES1" or "ES2")
     ''')
 
 
@@ -190,5 +193,5 @@ if __name__ == "__main__":
     # Write RFIT team JIRA IDs to a CSV
     write_dict_to_csv(sys.argv[1] + "\RFIT.csv", RFIT_Team)
 
-    zephyr_translation(sys.argv[1] + "\\" + sys.argv[2], 4, RFIT_Team)
+    zephyr_translation(sys.argv[1] + "\\" + sys.argv[2], sys.argv[3], sys.argv[4], RFIT_Team)
 

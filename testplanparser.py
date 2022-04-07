@@ -19,7 +19,7 @@ def read_test_plan(filename, skip_row):
     sheet_list = read_file.sheet_names
     sheet_list = [x for x in sheet_list if not x.startswith("Sheet") and "Definitions" not in x]
 
-    # This will contain the dicts of TP sheets. Type: <list> of <dicts>
+    # This will contain the dicts of tp sheets. Type: <list> of <dicts>
     excel_dicts = []
 
     for member in sheet_list:
@@ -30,13 +30,13 @@ def read_test_plan(filename, skip_row):
 
 
 def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_users=None):
-    '''
+    """
         Function: read_test_plan() function is called by the zephyr_translation() function.
         Argument 1: Filename of the Excel file.
-    '''
+    """
 
     # Columns for the Zephyr import CSV
-    headers = ["Labels", "Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder", "Component"]
+    headers = ["Name", "Objective", "Owner", "Priority", "Status", "Estimated Time", "Folder", "Component"]
 
     # Time estimate - default of 1 hours. Required Format - "hh:mm"
     default_estimate = "1:00"
@@ -56,12 +56,12 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
         default_user = "Unassigned"
 
     # Call the testplan reader function
-    TP_sheets, TP_sheet_names = read_test_plan(test_plan_excel, skip_row=int(skip_row_len))
+    tp_sheets, tp_sheet_names = read_test_plan(test_plan_excel, skip_row=int(skip_row_len))
 
     # Iterate loop counter
     iter = 0
 
-    # Get TP prefix
+    # Get tp prefix
     test_plan_prefix = sys.argv[2].replace(".xlsx", "")
 
     # Initialise test plan folder & filepath
@@ -79,30 +79,29 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
     f = open(file_path, 'a', newline='')
 
     # Iterate through the list - type: Dict of dicts
-    for sheet in TP_sheets:
+    for sheet in tp_sheets:
 
         # Copy dict of dict to avoid changing iterating target
         copy_sheet = copy.copy(sheet)
 
         # Column Loop Initialisers
         copy_sheet[headers[0]] = {}
-        copy_sheet[headers[1]] = {}
         test_objectives_list = []
         test_count = 0
 
-        TP_columns = []
-        [TP_columns.append(columns) for columns in list(sheet.keys()) if "Unnamed" not in columns]
+        tp_columns = []
+        [tp_columns.append(columns) for columns in list(sheet.keys()) if "Unnamed" not in columns]
 
         # Add the label & name columns
-        for j in copy_sheet[TP_columns[4]]:
-            chip_id = copy_sheet[TP_columns[1]][j]
-            volt = copy_sheet[TP_columns[4]][j]
-            temp = copy_sheet[TP_columns[5]][j]
+        for j in copy_sheet[tp_columns[4]]:
+            chip_id = copy_sheet[tp_columns[1]][j]
+            volt = copy_sheet[tp_columns[4]][j]
+            temp = copy_sheet[tp_columns[5]][j]
             folder = ""
             
             # Regex to remove Sheet names/Test Types with numbers & non-underscore characters in them
-            TP_sheet_names[iter] = re.sub(r'[^A-Za-z_]+', "", TP_sheet_names[iter])
-            test_type = TP_sheet_names[iter]
+            tp_sheet_names[iter] = re.sub(r'[^A-Za-z_]+', "", tp_sheet_names[iter])
+            test_type = tp_sheet_names[iter]
 
             split_type = test_type.split("_")
 
@@ -116,22 +115,20 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
 
             folder = folder + " " + f"({component})"
 
-
-            # Populate Test Case No & Label
-            copy_sheet[headers[0]][j] = test_type + str(copy_sheet[TP_columns[0]][j])
-            copy_sheet[headers[1]][j] = copy_sheet[TP_columns[3]][j] + "_" + chip_id + "_" \
+            # Populate Test Case Name
+            copy_sheet[headers[0]][j] = copy_sheet[tp_columns[3]][j] + "_" + chip_id + "_" \
                                         + volt + "_" + temp
 
             # Populate string of independent variables
-            if "Frequency" in TP_columns:
-                frequency = copy_sheet[TP_columns[6]][j]
+            if "Frequency" in tp_columns:
+                frequency = copy_sheet[tp_columns[6]][j]
                 vars_string = (f'over frequency range {frequency} at ({temp}) degrees C and ({volt})V')
             else:
                 vars_string = (f'at ({temp}) degrees C and ({volt})V')
 
             # PRIORITY & PRECONDITION: Raise priority to "High" if there is a Mk1 label
-            mark_one_state = copy_sheet[TP_columns[7]]
-            baseline_state = copy_sheet[TP_columns[6]]
+            mark_one_state = copy_sheet[tp_columns[7]]
+            baseline_state = copy_sheet[tp_columns[6]]
             if isinstance(mark_one_state[j], str) and mark_one_state[j] == 'Y':
                 priority = "Mk1"
             elif isinstance(baseline_state[j], str) and baseline_state[j] == 'Y' and mark_one_state[j] != 'Y':
@@ -144,14 +141,12 @@ def zephyr_translation(test_plan_excel, skip_row_len, component_input, jira_user
 
             # # Write to the Zephyr import CSV
             writer = csv.writer(f)
-            writer.writerow([list(copy_sheet[headers[0]].values())[j], list(copy_sheet[headers[1]].values())[j]
-                                , test_objectives_list[j], default_user, priority, status, default_estimate,
+            writer.writerow([list(copy_sheet[headers[0]].values())[j], test_objectives_list[j], default_user, priority, status, default_estimate,
                              folder, component])
-
             test_count += 1
 
-        # Delete the previous TestPlan columns to prepare for next loop cycle
-        [copy_sheet.pop(TP_columns[column]) for column in range(len(TP_columns))]
+        # Delete the previous Testplan columns to prepare for next loop cycle
+        [copy_sheet.pop(tp_columns[column]) for column in range(len(tp_columns))]
 
         # Iterate for next loop cycle
         iter += 1
@@ -166,7 +161,7 @@ def RFIT_jira(export_csv_filename):
 
     # Populate dict of usernames & IDs
     jira_dict = dict(zip(jira_csv["User name"].tolist(), jira_csv["User id"].tolist()))
-    return (jira_dict)
+    return jira_dict
 
 
 def write_dict_to_csv(filename, dict_input):
